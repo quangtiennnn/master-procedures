@@ -6,7 +6,8 @@ from shapely.ops import nearest_points
 import pandas as pd
 import pycountry
 import pandas as pd
-import unicodedata
+import numpy as np
+####################### DATAFRAME SELECTION
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 COASTLINE_PATH = os.path.join(BASE_DIR, 'database', 'coastline.json')
@@ -155,13 +156,6 @@ def national_to_iso_code(country,default = 'en'):
 
 
 
-# def remove_diacritics(text):
-#     """
-#     Removing all diacritics from Vietnamese characters
-#     """
-#     normalized_text = unicodedata.normalize('NFD', text)
-#     without_diacritics = ''.join([c for c in normalized_text if not unicodedata.combining(c)])
-#     return without_diacritics        
 
 def detect_province(point, buffer_distance=0.01):
     """
@@ -220,3 +214,67 @@ def detect_region(province):
         return 'North Vietnam'
     else:
         return 'unknown'
+    
+
+
+####################### TOPIC MODELING
+import string
+import emoji
+import re
+
+def normalization(text):
+    text = emoji.replace_emoji(text, replace='')
+    text = text.translate(str.maketrans('', '', string.punctuation))
+    text = text.lower()
+    text = re.sub(r'\s+', ' ', text).strip()
+
+    return text
+
+
+from pyvi import ViTokenizer
+import spacy
+
+nlp = spacy.load('en_core_web_sm')
+def word_segmentation(text,language):
+    if language == 'vi':
+        return ViTokenizer.tokenize(text)
+    elif language == 'en':
+        doc = nlp(text)
+        return " ".join([token.text for token in doc])
+    else:
+        return text
+    
+    
+def preprocess(df: pd.DataFrame,type = 'sample'):
+    print("Preprocesing...")
+    if type == 'sample':
+        df['processed_comment'] = df['comment'].astype(str).apply(normalization)
+        df['processed_comment'] = df.apply(lambda row: word_segmentation(row['processed_text'], row['language']), axis=1)
+        return df
+    elif type == 'population':
+        file_path = 'database/processed_hotel_reviews.csv'
+        if os.path.isfile(file_path):
+            df = pd.read_csv(file_path, index_col=0)
+        else:    
+            df['processed_comment'] = df['comment'].astype(str).apply(normalization)
+            df['processed_comment'] = df.apply(lambda row: word_segmentation(row['processed_text'], row['language']), axis=1)
+            df.to_csv(file_path,index= True,encoding = 'utf-8-sig')
+        return df
+
+
+def embedding(docs,encoder,type='sample'):
+    print("Embedding...")
+    if type == 'sample':
+        corpus_embeddings = encoder.encode(docs, show_progress_bar=False)
+        return corpus_embeddings
+    elif type == 'population':
+        file_path = f'database/corpus_embeddings.npy'
+        try:
+            # Load pre-computed embeddings if they exist
+            corpus_embeddings = np.load(file_path)
+        except FileNotFoundError:
+            # Compute embeddings if they do not exist
+            corpus_embeddings = encoder.encode(docs, show_progress_bar=True)
+            # Save embeddings for future use
+            np.save(file_path, corpus_embeddings)
+        return corpus_embeddings
