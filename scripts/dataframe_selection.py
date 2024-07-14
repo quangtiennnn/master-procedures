@@ -6,7 +6,7 @@ class Selection:
         """
         We extract only the necessary columns to optimize database storage.        
         """
-        df = df.reset_index(drop=True)
+        # df = df.reset_index(drop=True)
         # Hotel Informations:
         self.hotel_id = df['hotel_id']
         self.star_rating = df['star_rating']

@@ -278,3 +278,6 @@ def embedding(docs,encoder,type='sample'):
             # Save embeddings for future use
             np.save(file_path, corpus_embeddings)
         return corpus_embeddings
+    
+def extract_embedding(df: pd.DataFrame,corpus_embedding):
+    return corpus_embedding[df.index]
