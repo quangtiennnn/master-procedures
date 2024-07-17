@@ -52,7 +52,7 @@ class Selection:
             self.dis2coast, self.nearest_point = zip(*[shortestDistance(hotel_coord=point) for point in self.coordinate])
         
             
-    def filtering(self, extracting = 'hotel',province=None, star_rating=None, region=None, dis2coast=None, seaside=None):
+    def filtering(self, extracting = 'hotel',language = None,province=None, star_rating=None, region=None, dis2coast=None, seaside=None):
         """ The function will check if each attribute is provided in the input and then apply the appropriate filters
 
         Args:
@@ -97,6 +97,10 @@ class Selection:
         if extracting == 'hotel':
             return filtered_hotel
         else:
-            return filtered_review[filtered_review['hotel_id'].isin(filtered_hotel['hotel_id'])]        
+            if language is not None:
+                filter_reviews = filtered_review[filtered_review['hotel_id'].isin(filtered_hotel['hotel_id'])]
+                return filter_reviews[filter_reviews['language'] == language]
+            else:
+                return filtered_review[filtered_review['hotel_id'].isin(filtered_hotel['hotel_id'])]        
         
         
